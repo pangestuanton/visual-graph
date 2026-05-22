@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Graph ITERA Campus Navigator</title>
+  <meta name="description" content="Interactive weighted graph visualization for ITERA campus routes with Dijkstra shortest path algorithm." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== TOP HEADER BAR ===== -->
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <h1 class="top-bar-title">Graph ITERA Campus Navigator</h1>
+    </div>
+    <div class="top-bar-right">
+      <button class="icon-btn" aria-label="Notifications">
+        <span class="material-symbols-outlined">notifications_active</span>
+      </button>
+      <button class="icon-btn" aria-label="Graph view">
+        <span class="material-symbols-outlined">account_tree</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== SIDEBAR NAVIGATION ===== -->
+  <nav class="sidebar" id="sidebar">
+    <!-- Logo & Title -->
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <span class="material-symbols-outlined">hub</span>
+      </div>
+      <div>
+        <h2 class="logo-title">GRAPH ITERA</h2>
+        <p class="logo-subtitle">Campus Route Optimizer</p>
+      </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <ul class="sidebar-nav">
+      <li>
+        <a href="#" class="nav-item nav-item-active" data-section="route-planner">
+          <span class="material-symbols-outlined">route</span>
+          <span>Route Planner</span>
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-item" data-section="building-directory">
+          <span class="material-symbols-outlined">domain</span>
+          <span>Building Directory</span>
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-item" data-section="map-legend">
+          <span class="material-symbols-outlined">legend_toggle</span>
+          <span>Map Legend</span>
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-item" data-section="system-settings">
+          <span class="material-symbols-outlined">settings</span>
+          <span>System Settings</span>
+        </a>
+      </li>
+    </ul>
+
+    <!-- Controls Section (Route Planner only) -->
+    <div class="sidebar-controls" id="sidebar-controls">
+      <!-- Info Card -->
+      <div class="info-card tape-effect">
+        <p>Interactive weighted graph visualization for ITERA campus routes.</p>
+      </div>
+
+      <!-- Start Building Dropdown -->
+      <div class="form-group">
+        <label for="start-select" class="form-label">Start Building</label>
+        <select id="start-select" class="form-select"></select>
+      </div>
+
+      <!-- Destination Building Dropdown -->
+      <div class="form-group">
+        <label for="dest-select" class="form-label">Destination Building</label>
+        <select id="dest-select" class="form-select"></select>
+      </div>
+
+      <!-- Action Buttons -->
+      <button id="btn-find" class="btn btn-primary brutalist-shadow">Find Shortest Path</button>
+      <button id="btn-reset" class="btn btn-secondary brutalist-shadow">Reset Analysis</button>
+    </div>
+  </nav>
+
+  <!-- ===== MOBILE HAMBURGER ===== -->
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
+    <span class="material-symbols-outlined">menu</span>
+  </button>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main-content" id="main-content">
+    <!-- Background dot pattern -->
+    <div class="bg-dots"></div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 1: ROUTE PLANNER (existing content)                  -->
+    <!-- ============================================================ -->
+    <section class="content-section active" id="section-route-planner">
+      <div class="content-wrapper">
+
+        <!-- Result Banner -->
+        <div class="result-banner" id="result-banner">
+          <div class="result-label">Result</div>
+          <p class="result-text" id="result-text">Select start and destination buildings, then click "Find Shortest Path".</p>
+          <span class="result-distance" id="result-distance"></span>
+        </div>
+
+        <!-- Node Info Card (on click) -->
+        <div class="node-info-card" id="node-info" style="display:none;">
+          <div class="node-info-label">Node Info</div>
+          <p id="node-info-text"></p>
+        </div>
+
+        <!-- Map Canvas -->
+        <div class="map-canvas" id="map-canvas">
+          <!-- Map Header -->
+          <div class="map-header">
+            <span class="map-header-title">
+              <span class="material-symbols-outlined" style="font-size:16px;">map</span>
+              Campus Topology Canvas
+            </span>
+            <span class="map-header-live">LIVE</span>
+          </div>
+
+          <!-- Green Fields (decorative) -->
+          <div class="green-field green-field-1" id="green-field-1"></div>
+          <div class="green-field green-field-2" id="green-field-2"></div>
+
+          <!-- SVG Layer for roads & edges -->
+          <svg class="map-svg" id="map-svg"></svg>
+
+          <!-- Nodes Container -->
+          <div class="nodes-container" id="nodes-container"></div>
+
+          <!-- Distance Badge Container -->
+          <div class="badges-container" id="badges-container"></div>
+        </div>
+
+        <!-- Legend & Edge List -->
+        <div class="bottom-grid">
+          <!-- Legend -->
+          <div class="legend-card">
+            <h3 class="legend-title">Legend</h3>
+            <ul class="legend-list">
+              <li class="legend-item">
+                <div class="legend-dot legend-dot-regular"></div>
+                <span>Regular Building</span>
+              </li>
+              <li class="legend-item">
+                <div class="legend-dot legend-dot-gku"></div>
+                <span>GKU Building</span>
+              </li>
+              <li class="legend-item">
+                <div class="legend-line legend-line-route"></div>
+                <span>Available Route</span>
+              </li>
+              <li class="legend-item">
+                <div class="legend-line legend-line-shortest"></div>
+                <span class="legend-shortest-text">Shortest Path</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Edge List Table -->
+          <div class="edge-table-card" id="edge-table-card">
+            <div class="edge-table-header">
+              <h3 class="edge-table-title">Edge List</h3>
+            </div>
+            <div class="edge-table-scroll">
+              <table class="edge-table" id="edge-table">
+                <thead>
+                  <tr>
+                    <th>Edge</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th class="text-right">Distance (m)</th>
+                  </tr>
+                </thead>
+                <tbody id="edge-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 2: BUILDING DIRECTORY                                -->
+    <!-- ============================================================ -->
+    <section class="content-section" id="section-building-directory">
+      <div class="content-wrapper">
+
+        <!-- Section Header -->
+        <div class="section-header-banner">
+          <div class="section-header-tag">Directory</div>
+          <h2 class="section-header-title">Building Directory</h2>
+          <p class="section-header-desc">All campus building nodes in the graph with connection data.</p>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="dir-toolbar">
+          <div class="dir-search-wrap">
+            <span class="material-symbols-outlined dir-search-icon">search</span>
+            <input type="text" id="dir-search" class="dir-search" placeholder="Search building name..." />
+          </div>
+          <div class="dir-filters">
+            <button class="dir-filter-btn active" data-filter="all">All</button>
+            <button class="dir-filter-btn" data-filter="regular">Regular</button>
+            <button class="dir-filter-btn" data-filter="gku">GKU</button>
+          </div>
+        </div>
+
+        <!-- Building Cards Grid -->
+        <div class="dir-grid" id="dir-grid"></div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 3: MAP LEGEND (expanded)                             -->
+    <!-- ============================================================ -->
+    <section class="content-section" id="section-map-legend">
+      <div class="content-wrapper">
+
+        <!-- Section Header -->
+        <div class="section-header-banner">
+          <div class="section-header-tag">Reference</div>
+          <h2 class="section-header-title">Map Legend</h2>
+          <p class="section-header-desc">Visual guide to all symbols and elements on the campus topology canvas.</p>
+        </div>
+
+        <!-- Legend Grid -->
+        <div class="legend-full-grid">
+
+          <!-- Regular Building -->
+          <div class="legend-full-card">
+            <div class="legend-full-visual">
+              <div class="legend-dot legend-dot-regular" style="width:36px;height:36px;"></div>
+            </div>
+            <div class="legend-full-info">
+              <h4 class="legend-full-name">Regular Building</h4>
+              <p class="legend-full-desc">Green circular marker used for regular campus buildings: Gedung A, B, C, D, E, and F. These represent standard faculty or administrative buildings.</p>
+            </div>
+          </div>
+
+          <!-- GKU Building -->
+          <div class="legend-full-card">
+            <div class="legend-full-visual">
+              <div class="legend-dot legend-dot-gku" style="width:36px;height:36px;"></div>
+            </div>
+            <div class="legend-full-info">
+              <h4 class="legend-full-name">GKU Building</h4>
+              <p class="legend-full-desc">Orange square marker used for Gedung Kuliah Umum (GKU) nodes. GKU 1 and GKU 2 are multi-purpose lecture halls that serve as major intersections in the campus graph.</p>
+            </div>
+          </div>
+
+          <!-- Normal Route -->
+          <div class="legend-full-card">
+            <div class="legend-full-visual">
+              <div class="legend-full-line-sample" style="background:#0ea5e9;height:6px;width:60px;border:1px solid var(--on-background);"></div>
+            </div>
+            <div class="legend-full-info">
+              <h4 class="legend-full-name">Normal Route</h4>
+              <p class="legend-full-desc">Blue line showing an available weighted route between two buildings. Each route has a distance weight in meters. The graph contains 10 undirected edges total.</p>
+            </div>
+          </div>
+
+          <!-- Shortest Path -->
+          <div class="legend-full-card">
+            <div class="legend-full-visual">
+              <div class="legend-full-line-sample" style="background:#bc0100;height:10px;width:60px;border:2px solid var(--on-background);box-shadow:2px 2px 0px 0px rgba(0,0,0,1);"></div>
+            </div>
+            <div class="legend-full-info">
+              <h4 class="legend-full-name">Shortest Path</h4>
+              <p class="legend-full-desc">Red highlighted route showing the result of Dijkstra's algorithm. Active nodes along the path are ringed in red and their labels turn red. The path uses a glow effect for emphasis.</p>
+            </div>
+          </div>
+
+          <!-- Distance Badge -->
+          <div class="legend-full-card">
+            <div class="legend-full-visual">
+              <div class="badge" style="position:static;transform:none;">120m</div>
+            </div>
+            <div class="legend-full-info">
+              <h4 class="legend-full-name">Distance Badge</h4>
+              <p class="legend-full-desc">Small label placed near the midpoint of each edge showing the distance weight in meters. Badges are offset perpendicularly from the route line to avoid overlap.</p>
+            </div>
+          </div>
+
+          <!-- Result Banner -->
+          <div class="legend-full-card">
+            <div class="legend-full-visual">
+              <div style="background:var(--secondary-container);border:2px solid var(--on-background);padding:4px 8px;font-family:var(--font-label);font-size:9px;box-shadow:2px 2px 0 0 rgba(0,0,0,1);position:relative;">
+                <div style="position:absolute;top:-8px;left:-4px;background:var(--primary);color:#fff;font-size:7px;padding:1px 4px;border:1px solid var(--on-background);">Result</div>
+                <span style="margin-top:4px;display:block;">A → B</span>
+              </div>
+            </div>
+            <div class="legend-full-info">
+              <h4 class="legend-full-name">Result Banner</h4>
+              <p class="legend-full-desc">Yellow card with a red "Result" tape label that displays the shortest path and total distance after running Dijkstra's algorithm. Uses the brutalist rotated-card style.</p>
+            </div>
+          </div>
+
+          <!-- Node Info Card -->
+          <div class="legend-full-card">
+            <div class="legend-full-visual">
+              <div style="background:var(--surface-container-low);border:2px solid var(--on-background);padding:4px 8px;font-family:var(--font-label);font-size:9px;box-shadow:2px 2px 0 0 rgba(0,0,0,1);position:relative;">
+                <div style="position:absolute;top:-8px;left:-4px;background:var(--node-gku);color:#fff;font-size:7px;padding:1px 4px;border:1px solid var(--on-background);">Node Info</div>
+                <span style="margin-top:4px;display:block;">Neighbors...</span>
+              </div>
+            </div>
+            <div class="legend-full-info">
+              <h4 class="legend-full-name">Node Info Card</h4>
+              <p class="legend-full-desc">Displayed when clicking on a building node. Shows the node name, its neighbors, and the distance to each neighbor. Uses an orange "Node Info" tape label.</p>
+            </div>
+          </div>
+
+          <!-- Edge List Table -->
+          <div class="legend-full-card">
+            <div class="legend-full-visual">
+              <div style="border:2px solid var(--on-background);overflow:hidden;font-family:var(--font-label);font-size:8px;">
+                <div style="background:var(--secondary-container);padding:2px 6px;border-bottom:2px solid var(--on-background);font-weight:700;">Edge List</div>
+                <div style="padding:2px 6px;background:var(--surface);">E1 | A → B | 120m</div>
+              </div>
+            </div>
+            <div class="legend-full-info">
+              <h4 class="legend-full-name">Edge List Table</h4>
+              <p class="legend-full-desc">A complete table below the map showing all 10 edges in the graph with their source node, target node, and distance weight. Auto-generated from graph data.</p>
+            </div>
+          </div>
+
+          <!-- Canvas -->
+          <div class="legend-full-card">
+            <div class="legend-full-visual">
+              <div style="background:var(--map-bg);border:2px solid var(--on-background);width:60px;height:40px;position:relative;overflow:hidden;">
+                <div style="position:absolute;top:0;left:0;right:0;background:var(--on-background);height:10px;"></div>
+                <div style="position:absolute;top:15px;left:5px;width:16px;height:16px;background:var(--green-field);border-radius:50%;opacity:0.4;border:1px solid var(--on-background);"></div>
+              </div>
+            </div>
+            <div class="legend-full-info">
+              <h4 class="legend-full-name">Campus Topology Canvas</h4>
+              <p class="legend-full-desc">The main map area with a cream background, decorative green fields, and a dark header bar labeled "Campus Topology Canvas". Nodes, edges, and badges are rendered here.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 4: SYSTEM SETTINGS                                   -->
+    <!-- ============================================================ -->
+    <section class="content-section" id="section-system-settings">
+      <div class="content-wrapper">
+
+        <!-- Section Header -->
+        <div class="section-header-banner">
+          <div class="section-header-tag">Config</div>
+          <h2 class="section-header-title">System Settings</h2>
+          <p class="section-header-desc">Adjust visual display options for the campus route map. Settings apply to the current session only.</p>
+        </div>
+
+        <!-- Settings Cards -->
+        <div class="settings-grid">
+
+          <!-- A. Theme Mode -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <span class="material-symbols-outlined">palette</span>
+              <h4>Theme Mode</h4>
+            </div>
+            <div class="settings-card-body">
+              <div class="settings-radio-group" id="settings-theme">
+                <label class="settings-radio">
+                  <input type="radio" name="theme" value="default" checked />
+                  <span class="settings-radio-mark"></span>
+                  <span>Default Brutalist Light</span>
+                </label>
+                <label class="settings-radio">
+                  <input type="radio" name="theme" value="high-contrast" />
+                  <span class="settings-radio-mark"></span>
+                  <span>High Contrast</span>
+                </label>
+                <label class="settings-radio">
+                  <input type="radio" name="theme" value="soft-map" />
+                  <span class="settings-radio-mark"></span>
+                  <span>Soft Map Mode</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- B. Map Display Options -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <span class="material-symbols-outlined">map</span>
+              <h4>Map Display Options</h4>
+            </div>
+            <div class="settings-card-body">
+              <label class="settings-toggle">
+                <input type="checkbox" id="toggle-badges" checked />
+                <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+                <span>Distance Badges</span>
+              </label>
+              <label class="settings-toggle">
+                <input type="checkbox" id="toggle-roads" checked />
+                <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+                <span>Road Background Lines</span>
+              </label>
+              <label class="settings-toggle">
+                <input type="checkbox" id="toggle-green" checked />
+                <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+                <span>Green Fields</span>
+              </label>
+              <label class="settings-toggle">
+                <input type="checkbox" id="toggle-edgelist" checked />
+                <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+                <span>Edge List Table</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- C. Route Highlight Options -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <span class="material-symbols-outlined">highlight</span>
+              <h4>Route Highlight Options</h4>
+            </div>
+            <div class="settings-card-body">
+              <p class="settings-sub-label">Shortest Path Color</p>
+              <div class="settings-radio-group" id="settings-path-color">
+                <label class="settings-radio">
+                  <input type="radio" name="path-color" value="#bc0100" checked />
+                  <span class="settings-radio-mark" style="border-color:#bc0100;"></span>
+                  <span>Red</span>
+                  <span class="settings-color-chip" style="background:#bc0100;"></span>
+                </label>
+                <label class="settings-radio">
+                  <input type="radio" name="path-color" value="#f97316" />
+                  <span class="settings-radio-mark" style="border-color:#f97316;"></span>
+                  <span>Orange</span>
+                  <span class="settings-color-chip" style="background:#f97316;"></span>
+                </label>
+                <label class="settings-radio">
+                  <input type="radio" name="path-color" value="#7c3aed" />
+                  <span class="settings-radio-mark" style="border-color:#7c3aed;"></span>
+                  <span>Purple</span>
+                  <span class="settings-color-chip" style="background:#7c3aed;"></span>
+                </label>
+              </div>
+
+              <p class="settings-sub-label" style="margin-top:16px;">Route Thickness</p>
+              <div class="settings-radio-group" id="settings-thickness">
+                <label class="settings-radio">
+                  <input type="radio" name="thickness" value="normal" checked />
+                  <span class="settings-radio-mark"></span>
+                  <span>Normal</span>
+                </label>
+                <label class="settings-radio">
+                  <input type="radio" name="thickness" value="thick" />
+                  <span class="settings-radio-mark"></span>
+                  <span>Thick</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reset Settings -->
+          <div class="settings-card settings-card-reset">
+            <div class="settings-card-header">
+              <span class="material-symbols-outlined">restart_alt</span>
+              <h4>Reset All Settings</h4>
+            </div>
+            <div class="settings-card-body">
+              <p class="settings-reset-desc">Restore all settings to their default values.</p>
+              <button id="btn-reset-settings" class="btn btn-primary brutalist-shadow">Reset Settings</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
